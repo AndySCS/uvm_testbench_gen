@@ -1,0 +1,19 @@
+Please Enter the Following In Order Separated By Comma And No Space
+Enter no. of drivers,1st driver name,..,nth driver name
+
+For Example:
+  1. To Create One Driver Just Using Agent Name, please enter as give below:
+     1
+     Note: So This Will Create Driver With <Agent_Name>_driver.sv
+
+  2. To Create One Driver Named mango, please enter as give below:
+     1,mango
+
+  3. To Create Two Drivers Named mango and orange, please enter as give below:
+     2,mango,orange
+     Note: Similarly You Can Create N-number of drivers
+
+So This Will Create a Driver With Name <Agent Name>_mango_driver.sv
+Similarly It Will Create The Sequencer With Name <Agent Name>_mango_sequencer.sv
+
+For Detailed Working Operation of This Tool, Please Refer The Below Link!

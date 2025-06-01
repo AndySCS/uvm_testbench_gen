@@ -1,0 +1,19 @@
+Please Enter the Following In Order Separated By Comma And No Space
+Enter no. of scoreboards,1st scoreboard name,..,nth scoreboard name
+
+For Example:
+  1. To Create One Scoreboard Just Using Agent Name, please enter as give below:
+     1
+     Note: So This Will Create Scoreboard With <Agent_Name>_scoreboard.sv
+
+  2. To Create One Scoreboard Named mango, please enter as give below:
+     1,mango
+
+  3. To Create Two Scoreboards Named mango and orange, please enter as
+     give below:
+     2,mango,orange
+     Note: Similarly You Can Create N-number of scoreboards
+
+So This Will Create a Scoreboard With Name <Agent Name>_mango_scoreboard.sv
+
+For Detailed Working Operation of This Tool, Please Refer The Below Link!

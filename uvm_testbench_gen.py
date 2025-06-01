@@ -424,39 +424,19 @@ proj_root = os.environ.get("PROJ_ROOT")
 #     user_name = user_name.replace('\n','')
 
 
-class CustomLabel(tk.Frame):
-    def __init__(self, parent, label1, label2, **kwargs):
-        tk.Frame.__init__(self, parent, **kwargs)
-
-        self.canvas = tk.Canvas(self, borderwidth=0, highlightbackground='black', highlightthickness=2, background=self.cget("background"))
-        self.canvas.pack(fill="both", expand=True)
-
-        l1 = tk.Label(self.canvas, text=label1, background=self.cget("background"))
-        l2 = tk.Label(self.canvas, text=label2, background=self.cget("background"))
-
-        l1.place(relx=.75, rely=.25, anchor="c")
-        l2.place(relx=.25, rely=.75, anchor="c")
-
-        # arrange for the line to be redrawn whenever the canvas
-        # changes size
-        self.canvas.bind("<Configure>", self.handle_configure)
-
-        # set the default size to be relative to the requested size
-        # of the labels plus some margin
-        width  = l1.winfo_reqwidth()  + l2.winfo_reqwidth() + 4
-        height = l1.winfo_reqheight() + l2.winfo_reqheight() + 4
-        self.canvas.configure(width=width, height=height)
-
-    def handle_configure(self, event):
-        self.canvas.delete("line")
-        self.canvas.create_line(0,0,event.width, event.height, tags=("line",))
-
-
+from CustomLabel import CustomLabel
+from uvm_template_gen import uvm_template_gen
+from uvm_gen_quick_tips import uvm_gen_quick_tips
+from uvm_testbench_gen_base import uvm_testbench_gen_base
+from uvm_testbench_gen_font import uvm_testbench_gen_font
+from uvm_testbench_gen_content import uvm_testbench_gen_content
+from uvm_gen_first_page import uvm_gen_first_page
 # To Level Class Component. Which Builds the entire GUI 
 class uvm_testbench_gen:
     def __init__(self, master):
         self.master = master
-        self.bnr = IntVar(root)
+        self.bnr = IntVar(master)
+        self.qt = IntVar(master) 
         self.genbtn = None
         self.exit_button = None
         self.parse_button = None
@@ -465,6 +445,10 @@ class uvm_testbench_gen:
         self.single_component_buttons_dict = {}
         self.single_component_button = None
         self.complete_vip_button = None
+        self.uvm_gen_font = uvm_testbench_gen_font(master)
+        self.uvm_template_gen = uvm_template_gen()
+        self.uvm_gen_quick_tips = uvm_gen_quick_tips(self.uvm_gen_font)
+        self.uvm_first_page = uvm_gen_first_page(self.master, self.qt, self.bnr, self.uvm_gen_font)
         
         self.multi_cluster_vip_button = None
         self.multi_cluster_vip_button_gui = None
@@ -544,10 +528,6 @@ class uvm_testbench_gen:
         self.cv_udi_done = None
         self.cv_udie = []
 
-        self.acqt = None
-        self.mcqt = None
-        self.scqt = None
-        self.icqt = None
         self.qtips_chkbtn = None
         self.bnr_chkbtn = None
 
@@ -728,70 +708,12 @@ class uvm_testbench_gen:
         self.mc_parse_envname = StringVar()
         self.mc_parse_link = IntVar()
 
-        self.top_frame = None
-        self.lib_frame = None
-        self.lib_label = None
-        self.lib_entry = None
         self.final_rmg_frame = None
         
         self.sc_rm_ec_frame = None
 
         # Default Value Settings
-        self.bnr.set(1)
-
-        self.master.title("UVM Template Generator")
-        #master.geometry('500x75')
-        #root.pack(fill=BOTH)
-        
-
-        if self.top_frame: 
-            self.top_frame.grid_forget(); self.top_frame = None
-        self.top_frame = Frame(root, bg='gray50', highlightbackground='black', highlightthickness='2')
-        self.top_frame.grid(row=0, column=0, columnspan=2,sticky='WE')
-        self.top_frame.rowconfigure(0,weight=1)
-        self.top_frame.columnconfigure((0,1,2),weight=1)
-
-
-        # Codes For Checkbutton To Enable Tips Window
-        self.qtips_chkbtn = Checkbutton(self.top_frame, bg='gray50', activebackground="gray90", highlightbackground='gray50', font=MyFontH2, anchor="center", text = "User Tips", variable = qt, onvalue = 1, offvalue = 0) 
-        self.qtips_chkbtn.grid(row=0, column=0, sticky='NW')
-        self.qtips_chkbtn.rowconfigure(0,weight=1)
-        self.qtips_chkbtn.columnconfigure(0,weight=1)
-        
-        self.bnr_chkbtn = Checkbutton(self.top_frame, bg='gray50', activebackground="gray90", highlightbackground='gray50', font=MyFontH2, anchor="center", text = "Build & Run", variable = self.bnr, onvalue = 0, offvalue = 0) 
-        self.bnr_chkbtn.grid(row=0, column=2, sticky='NE')
-        self.bnr_chkbtn.rowconfigure(0,weight=1)
-        self.bnr_chkbtn.columnconfigure(2,weight=1)
-
-        #------------------------------------------------------------------------------
-        # Code for taking the option for which lib type it is : 011520|WED
-        #------------------------------------------------------------------------------
-        if self.lib_frame: 
-            self.lib_frame.grid_forget(); self.lib_frame = None
-        self.lib_frame = Frame(self.top_frame, bg='gray50',)
-        self.lib_frame.grid(row=0, column=1)
-        self.lib_frame.rowconfigure(0,weight=1)
-        self.lib_frame.columnconfigure(1,weight=1)
-        
-        if not (self.lib_label):
-            self.lib_label = Label(self.lib_frame, font=MyFontH2, bg='gray50', highlightbackground='gray50', text="Lib")
-            self.lib_label.grid(row=0, column=0)
-            self.lib_label.rowconfigure(0,weight=1)
-        else:
-            self.lib_label.grid()
-        
-        if not (self.lib_entry): 
-            self.lib_entry = Entry(self.lib_frame, font=MyFontH2, bg='gray50', highlightbackground='gray50', width = 10)
-            self.lib_entry.insert(END, 'uvm')
-            self.lib_entry.grid(row=0, column=1)
-            self.lib_entry.rowconfigure(0,weight=1)
-        else:
-            self.lib_entry.grid()
-        #------------------------------------------------------------------------------
-
-
-        # Code to call/enable/wish the respective user
-        self.greeting_widget_window()
+        self.uvm_first_page.gen_page()
 
         self.initial_screen_buttons_list_value = (
          ('self.single_component_button', 'Single UVM Component',v, 1, self.singlecomponent, 2, 'W', MyFontH1),
@@ -848,7 +770,6 @@ class uvm_testbench_gen:
 
         self.exit_button_create_cb(1);
 
-    
     def rtn_date_time_full(self):
         global dtf 
 
@@ -871,9 +792,9 @@ class uvm_testbench_gen:
             return getpass.getuser()
 
     def greeting_widget_window(self):
-        self.initial_screen_label = Label(self.master, font=MyFontH1, anchor="center", text="Hello %s! Choose What You Want To Create"% self.rtn_usr_name())
-        self.initial_screen_label.grid(row=1, column=0, columnspan=2)
-        self.initial_screen_label.rowconfigure(1,weight=1)
+        self.initial_screen_label = Label(self.master, font=MyFontH1, text="Hello %s! Choose What You Want To Create"% self.rtn_usr_name())
+        self.initial_screen_label.grid(row=1, column=0)
+        self.initial_screen_label.rowconfigure(0,weight=1)
    
     def greeting_widget_window_kcb(self):
         if self.initial_screen_label:
@@ -1019,7 +940,6 @@ class uvm_testbench_gen:
                 self.return_button.rowconfigure(0, weight=1)
                 #self.return_button.columnconfigure(0, weight=1)
 
-
     def exit_button_create_cb(self, which_exit):
         if which_exit == 1:
             if not (self.exit_button): 
@@ -1136,7 +1056,6 @@ class uvm_testbench_gen:
                 self.exit_button.rowconfigure(0,weight=1)
                 #self.exit_button.columnconfigure(1,weight=1)
 
-
     def parse_ss_button_create_cb(self, which_parse):
         global which_parse_gb
         if which_parse == 1:
@@ -1250,188 +1169,6 @@ class uvm_testbench_gen:
             fg = self.mc_final_envset_button.cget("foreground")
             self.mc_final_envset_button.configure(background=fg, foreground=bg)
             self.mc_final_envset_button.after(500, self.flash_mc_final_envset_button)
-
-    # Agent Component Quick Tips
-    def agent_drv_quick_tips(self):
-        self.acqt = Toplevel()
-        self.acqt.wm_title("UVM TEMPLATE GENERATOR QUICK TIPS")
-        
-        self.acqt_label = Label(self.acqt, text="How To Create Driver~Sequencer Components", font=MyFontH1)
-        self.acqt_label.pack()
-        
-        self.acqt_text = Text(self.acqt, font=MyFontQT)
-        self.acqt_text.insert(INSERT,"Please Enter the Following In Order Separated By Comma And No Space\n")
-        self.acqt_text.insert(INSERT,"Enter no. of drivers,1st driver name,..,nth driver name\n")
-        self.acqt_text.insert(INSERT,"\n")
-        self.acqt_text.insert(INSERT,"For Example:\n")
-        self.acqt_text.insert(INSERT,"  1. To Create One Driver Just Using Agent Name, please enter as give below:\n")
-        self.acqt_text.insert(INSERT,"     1\n")
-        self.acqt_text.insert(INSERT,"     Note: So This Will Create Driver With <Agent_Name>_driver.sv\n")
-        self.acqt_text.insert(INSERT,"\n")
-        self.acqt_text.insert(INSERT,"  2. To Create One Driver Named mango, please enter as give below:\n")
-        self.acqt_text.insert(INSERT,"     1,mango\n")
-        self.acqt_text.insert(INSERT,"\n")
-        self.acqt_text.insert(INSERT,"  3. To Create Two Drivers Named mango and orange, please enter as give below:\n")
-        self.acqt_text.insert(INSERT,"     2,mango,orange\n")
-        self.acqt_text.insert(INSERT,"     Note: Similarly You Can Create N-number of drivers\n")
-        self.acqt_text.insert(INSERT,"\n")
-        self.acqt_text.insert(INSERT,"So This Will Create a Driver With Name <Agent Name>_mango_driver.sv\n")
-        self.acqt_text.insert(INSERT,"Similarly It Will Create The Sequencer With Name <Agent Name>_mango_sequencer.sv\n")
-        self.acqt_text.insert(INSERT,"\n")
-        self.acqt_text.insert(INSERT,"For Detailed Working Operation of This Tool, Please Refer The Below Link!\n")
-        self.acqt_text.pack()
-        
-        self.acqt_close_button = Button(self.acqt, text="Close", command=self.quick_tips_close_window_acqt)
-        self.acqt_close_button.pack()
-  
-    def agent_mon_quick_tips(self):
-        self.mcqt = Toplevel()
-        self.mcqt.wm_title("UVM Template Generator Quick Tips")
-        
-        self.mcqt_label = Label(self.mcqt, text="How To Create Monitor Component", font=MyFontH1)
-        self.mcqt_label.pack()
-        
-        self.mcqt_text = Text(self.mcqt, font=MyFontQT)
-        self.mcqt_text.insert(INSERT,"Please Enter the Following In Order Separated By Comma And No Space\n")
-        self.mcqt_text.insert(INSERT,"Enter no. of monitors,1st monitor name,..,nth monitor name\n")
-        self.mcqt_text.insert(INSERT,"\n")
-        self.mcqt_text.insert(INSERT,"For Example:\n")
-        self.mcqt_text.insert(INSERT,"  1. To Create One Monitor Just Using Agent Name, please enter as give below:\n")
-        self.mcqt_text.insert(INSERT,"     1\n")
-        self.mcqt_text.insert(INSERT,"     Note: So This Will Create Monitor With <Agent_Name>_monitor.sv\n")
-        self.mcqt_text.insert(INSERT,"\n")
-        self.mcqt_text.insert(INSERT,"  2. To Create One Monitor Named mango, please enter as give below:\n")
-        self.mcqt_text.insert(INSERT,"     1,mango\n")
-        self.mcqt_text.insert(INSERT,"\n")
-        self.mcqt_text.insert(INSERT,"  3. To Create Two Monitors Named mango and orange, please enter as give below:\n")
-        self.mcqt_text.insert(INSERT,"     2,mango,orange\n")
-        self.mcqt_text.insert(INSERT,"     Note: Similarly You Can Create N-number of monitors\n")
-        self.mcqt_text.insert(INSERT,"\n")
-        self.mcqt_text.insert(INSERT,"So This Will Create a Monitor With Name <Agent Name>_mango_monitor.sv\n")
-        self.mcqt_text.insert(INSERT,"\n")
-        self.mcqt_text.insert(INSERT,"For Detailed Working Operation of This Tool, Please Refer The Below Link!\n")
-        self.mcqt_text.pack()
-        
-        self.mcqt_close_button = Button(self.mcqt, text="Close", command=self.quick_tips_close_window_mcqt)
-        self.mcqt_close_button.pack()
-
-    # Scoreboard Component Quick Tips
-    def scb_quick_tips(self):
-        self.scqt = Toplevel()
-        self.scqt.wm_title("UVM Template Generator Quick Tips")
-        
-        self.scqt_label = Label(self.scqt, text="How To Create Scoreboard Component", font=MyFontH1)
-        self.scqt_label.pack()
-        
-        self.scqt_text = Text(self.scqt, font=MyFontQT)
-        self.scqt_text.insert(INSERT,"Please Enter the Following In Order Separated By Comma And No Space\n")
-        self.scqt_text.insert(INSERT,"Enter no. of scoreboards,1st scoreboard name,..,nth scoreboard name\n")
-        self.scqt_text.insert(INSERT,"\n")
-        self.scqt_text.insert(INSERT,"For Example:\n")
-        self.scqt_text.insert(INSERT,"  1. To Create One Scoreboard Just Using Agent Name, please enter as give below:\n")
-        self.scqt_text.insert(INSERT,"     1\n")
-        self.scqt_text.insert(INSERT,"     Note: So This Will Create Scoreboard With <Agent_Name>_scoreboard.sv\n")
-        self.scqt_text.insert(INSERT,"\n")
-        self.scqt_text.insert(INSERT,"  2. To Create One Scoreboard Named mango, please enter as give below:\n")
-        self.scqt_text.insert(INSERT,"     1,mango\n")
-        self.scqt_text.insert(INSERT,"\n")
-        self.scqt_text.insert(INSERT,"  3. To Create Two Scoreboards Named mango and orange, please enter as\n")
-        self.scqt_text.insert(INSERT,"     give below:\n")
-        self.scqt_text.insert(INSERT,"     2,mango,orange\n")
-        self.scqt_text.insert(INSERT,"     Note: Similarly You Can Create N-number of scoreboards\n")
-        self.scqt_text.insert(INSERT,"\n")
-        self.scqt_text.insert(INSERT,"So This Will Create a Scoreboard With Name <Agent Name>_mango_scoreboard.sv\n")
-        self.scqt_text.insert(INSERT,"\n")
-        self.scqt_text.insert(INSERT,"For Detailed Working Operation of This Tool, Please Refer The Below Link!\n")
-        self.scqt_text.pack()
-        
-        self.scqt_close_button = Button(self.scqt, text="Close", command=self.quick_tips_close_window_scqt)
-        self.scqt_close_button.pack()
-
-    # Interface Quick Tips
-    def intf_quick_tips(self):
-        self.icqt = Toplevel()
-        self.icqt.wm_title("UVM Template Generator Quick Tips")
-        
-        self.icqt_label = Label(self.icqt, text="How To Create Interface Component", font=MyFontH1)
-        self.icqt_label.pack()
-        
-        self.icqt_text = Text(self.icqt, font=MyFontQT)
-        self.icqt_text.insert(INSERT,"For Detailed Working Operation of This Tool, Please Refer The Below Link!\n")
-        
-        # self.icqt_text.insert(INSERT,"Please Enter the Following In Order Separated By Comma And No Space\n")
-        # self.icqt_text.insert(INSERT,"Enter no. of Signal Name, Type, Size\n")
-        # self.icqt_text.insert(INSERT,"\n")
-        # self.icqt_text.insert(INSERT,"For Example:\n")
-        # self.icqt_text.insert(INSERT,"  1. To Create an Interface Signal, please enter as give below:\n")
-        # self.icqt_text.insert(INSERT,"     mango,logic,8 or mango,logic,`ADDR_WIDTH\n")
-        # self.icqt_text.insert(INSERT,"\n")
-        # self.icqt_text.insert(INSERT,"  2. To Create an Interface Signal With Clocking Block, make sure you end the\n")
-        # self.icqt_text.insert(INSERT,"     clocking block name with _cb, please enter as give below:\n")
-        # self.icqt_text.insert(INSERT,"     mango,logic,8,mon_cb,inout\n")
-        # self.icqt_text.insert(INSERT,"     Note: You can add N-number of clocking blocks for the same signal\n")
-        # self.icqt_text.insert(INSERT,"\n")
-        # self.icqt_text.insert(INSERT,"  3. To Create an Interface Signal With Modports, make sure you end the\n")
-        # self.icqt_text.insert(INSERT,"     modport name with _mp, please enter as give below:\n")
-        # self.icqt_text.insert(INSERT,"     mango,logic,8,mon_mp,inout\n")
-        # self.icqt_text.insert(INSERT,"     Note: You can add N-number of modport for the same signal\n")
-        # self.icqt_text.insert(INSERT,"\n")
-        # self.icqt_text.insert(INSERT,"  4. To Create an Interface Signal With Modports, make sure you end the\n")
-        # self.icqt_text.insert(INSERT,"     modport name with _mp. If you wanted to add a clocking block\n")
-        # self.icqt_text.insert(INSERT,"     into the modport, please enter as give below\n")
-        # self.icqt_text.insert(INSERT,"     mango,logic,8,mon_mp,clocking\n")
-        # self.icqt_text.insert(INSERT,"\n")
-        # self.icqt_text.insert(INSERT,"  5. You can basically add both clocking block and modport in the same\n")
-        # self.icqt_text.insert(INSERT,"     for a particular signal, please enter as give below:\n")
-        # self.icqt_text.insert(INSERT,"     mango,logic,8,mon_cb,inout,drv_mp,output\n")
-        # self.icqt_text.insert(INSERT,"\n")
-        # self.icqt_text.insert(INSERT,"  6. To create an Interface Signal Wilh both left side and right side\n")
-        # self.icqt_text.insert(INSERT,"     element size configuration, please enter as given below:\n")
-        # self.icqt_text.insert(INSERT,"     mango,wire,le,8,ree,32 Or\n")
-        # self.icqt_text.insert(INSERT,"     mango,wire,ree,32 Or\n")
-        # self.icqt_text.insert(INSERT,"     mango,wire,le,8,ree,`ADDR_WIDTH Or\n")
-        # self.icqt_text.insert(INSERT,"     mango,wire,le,`DATA_WIDTH,ree,`ADDR_WIDTH\n")
-        # self.icqt_text.insert(INSERT,"     Note: Where le stands for left-element and ree for right-element\n")
-        # self.icqt_text.insert(INSERT,"\n")
-        # self.icqt_text.insert(INSERT,"So This Will Create a Interface With Name <Agent Name>_interface.sv\n")
-        
-        self.icqt_text.pack()
-        
-        self.icqt_close_button = Button(self.icqt, text="Close", command=self.quick_tips_close_window_icqt)
-        self.icqt_close_button.pack()
-
-    # Quick Tips Close Window
-    def quick_tips_close_window_acqt(self):
-        if self.acqt:
-            # try: self.acqt.destroy()   
-            # except (): pass # fill in the error here
-            # self.acqt = None
-            self.acqt.destroy()
-            self.acqt = None
-    
-    def quick_tips_close_window_mcqt(self):
-        if self.mcqt:
-            # try: self.acqt.destroy()   
-            # except (): pass # fill in the error here
-            # self.acqt = None
-            self.mcqt.destroy()
-            self.mcqt = None    
-    
-    def quick_tips_close_window_scqt(self):
-        if self.scqt:
-            # try: self.scqt.destroy()   
-            # except (): pass # fill in the error here
-            # self.scqt = None
-            self.scqt.destroy()
-            self.scqt = None    
-    
-    def quick_tips_close_window_icqt(self):
-        if self.icqt:
-            # try: self.icqt.destroy()   
-            # except (): pass # fill in the error here
-            # self.icqt = None
-            self.icqt.destroy()
-            self.icqt = None    
 
     def match_substring_recursive(self,needle, haystack):
         if isinstance(haystack, str):
@@ -1973,8 +1710,8 @@ class uvm_testbench_gen:
                self.scae1.delete(0, "end") # delete all the text in the entry
                self.scae1.insert(0, '') #Insert blank for user input
                #self.scae1.configure(bg="white")
-            if qt.get():
-               self.agent_drv_quick_tips()
+            if self.qt.get():
+               self.uvm_gen_quick_tips.gen_quick_tips('agent_drv')
 
     def scae2_entry_click(self,event):
         if (self.scae2):
@@ -1982,55 +1719,55 @@ class uvm_testbench_gen:
                self.scae2.delete(0, "end") # delete all the text in the entry
                self.scae2.insert(0, '') #Insert blank for user input
                #self.scae2.configure(bg="white")
-            if qt.get():
-               self.agent_mon_quick_tips()
+            if self.qt.get():
+               self.uvm_gen_quick_tips.gen_quick_tips('agent_mon')
     
     def cvad_e1_entry_click(self,event):
         if self.cvad_e1.get() == 'Enter no. of drivers,1st driver name,..,nth driver name':
            self.cvad_e1.delete(0, "end") # delete all the text in the entry
            self.cvad_e1.insert(0, '') #Insert blank for user input
            #self.cvad_e1.configure(bg="white")
-        if qt.get():
-           self.agent_drv_quick_tips()
+        if self.qt.get():
+           self.uvm_gen_quick_tips.gen_quick_tips('agent_drv')
     
     def cvad_e2_entry_click(self,event):
         if self.cvad_e2.get() == 'Enter no. of monitors,1st monitor name,..,nth monitor name':
            self.cvad_e2.delete(0, "end") # delete all the text in the entry
            self.cvad_e2.insert(0, '') #Insert blank for user input
            #self.cvad_e2.configure(bg="white")
-        if qt.get():
-           self.agent_mon_quick_tips()
+        if self.qt.get():
+           self.uvm_gen_quick_tips.gen_quick_tips('agent_mon')
     
     def cvad_e3_entry_click(self,event):
         if self.cvad_e3.get() == 'Enter no. of scoreboards,1st scoreboard name,..,nth scoreboard name':
            self.cvad_e3.delete(0, "end") # delete all the text in the entry
            self.cvad_e3.insert(0, '') #Insert blank for user input
            #self.cvad_e3.configure(bg="white")
-        if qt.get():
-           self.scb_quick_tips()
+        if self.qt.get():
+           self.uvm_gen_quick_tips.gen_quick_tips('scb')
     
     def sc_udie_entry_click(self,event):
         if self.sc_udie[sc_udie_loop].get() == 'Enter Signal Name, Type, Size. For More Options, Click User Tips!':
            self.sc_udie[sc_udie_loop].delete(0, "end") # delete all the text in the entry
            self.sc_udie[sc_udie_loop].insert(0, '') #Insert blank for user input
            #self.sc_udie[sc_udie_loop].configure(bg="white")
-        if qt.get():
-           self.intf_quick_tips()
+        if self.qt.get():
+           self.uvm_gen_quick_tips.gen_quick_tips('interface')
    
     def cv_udie_entry_click(self,event):
         if self.cv_udie[cv_udie_loop].get() == 'Enter Signal Name, Type, Size. For More Options, Click User Tips!':
            self.cv_udie[cv_udie_loop].delete(0, "end") # delete all the text in the entry
            self.cv_udie[cv_udie_loop].insert(0, '') #Insert blank for user input
            #self.cv_udie[cv_udie_loop].configure(bg="white")
-        if qt.get():
-           self.intf_quick_tips()
+        if self.qt.get():
+           self.uvm_gen_quick_tips.gen_quick_tips('interface')
 
     def mcae2_entry_click(self,event):
         if self.mcae2.get() == 'Enter no. of drivers,1st driver name,..,nth driver name':
            self.mcae2.delete(0, "end") # delete all the text in the entry
            self.mcae2.insert(0, '') #Insert blank for user input
-        if qt.get():
-           self.agent_drv_quick_tips()
+        if self.qt.get():
+           self.uvm_gen_quick_tips.gen_quick_tips('agent_drv')
     
     # Code for exit button. When Return Button is pressed it closes all the 
     # lables, entry button for either single component or complete VIP generation.
@@ -2272,38 +2009,6 @@ class uvm_testbench_gen:
             else:
                 self.single_component_buttons_dict[_SCButtonName].grid()
                 
-
-        # if not (self.scr1_seq_item):
-        #     self.scr1_seq_item = Radiobutton(root, text="Sequence Item", variable=sv, value="Sequence Item", command=self.singlecomponent_create)
-        #     self.scr1_seq_item.pack()
-        # if not (self.scr1_seq):
-        #     self.scr1_seq = Radiobutton(root, text="Sequence", variable=sv, value="Sequence", command=self.singlecomponent_create)
-        #     self.scr1_seq.pack()
-        # if not (self.scr1_seqr):
-        #     self.scr1_seqr = Radiobutton(root, text="Sequencer", variable=sv, value="Sequencer", command=self.singlecomponent_create)
-        #     self.scr1_seqr.pack()
-        # if not (self.scr1_drv):
-        #     self.scr1_drv = Radiobutton(root, text="Driver", variable=sv, value="Driver", command=self.singlecomponent_create)
-        #     self.scr1_drv.pack()
-        # if not (self.scr1_mon):
-        #     self.scr1_mon = Radiobutton(root, text="Monitor", variable=sv, value="Monitor", command=self.singlecomponent_create)
-        #     self.scr1_mon.pack()
-        # if not (self.scr1_agt):
-        #     self.scr1_agt = Radiobutton(root, text="Agent", variable=sv, value="Agent", command=self.singlecomponent_create)
-        #     self.scr1_agt.pack()
-        # if not (self.scr1_scb):
-        #     self.scr1_scb = Radiobutton(root, text="Scoreboard", variable=sv, value="Scoreboard", command=self.singlecomponent_create)
-        #     self.scr1_scb.pack()
-        # if not (self.scr1_env):
-        #     self.scr1_env = Radiobutton(root, text="Environment", variable=sv, value="Environment", command=self.singlecomponent_create)
-        #     self.scr1_env.pack()
-        # if not (self.scr1_test):
-        #     self.scr1_test = Radiobutton(root, text="Test", variable=sv, value="Test", command=self.singlecomponent_create)
-        #     self.scr1_test.pack()
-        # if not (self.scr1_intf):
-        #     self.scr1_intf = Radiobutton(root, text="Interface", variable=sv, value="Interface", command=self.singlecomponent_create)
-        #     self.scr1_intf.pack()
-
         self.greeting_widget_window_kcb();
         log.debug("List of Keys In initial_screen_buttons_dict is %s"%list(self.initial_screen_buttons_dict.keys()))
         log.debug("List of Values In initial_screen_buttons_dict is %s"%list(self.initial_screen_buttons_dict.values()))
@@ -2318,15 +2023,6 @@ class uvm_testbench_gen:
         self.interface_label_rb_cb();
 
         self.sc_rm_ec_frame_code()
-        # self.return_button_create_cb(2);
-        # self.exit_button_create_cb(2)
-
-        # if not (self.return_button): 
-        #     self.return_button = Button(root, background="mediumpurple1", activebackground="purple2", text="RETURN TO MAIN MENU", command=self.return_button_code)    
-        #     self.return_button.grid(row=18)
-        #     self.return_button.rowconfigure(18,weight=1)
-
-        # self.exit_button_cb();
 
     
     # Code for the complete vip generation process. It builds the necessary radio buttons
@@ -4317,7 +4013,7 @@ class uvm_testbench_gen:
         global cvad_e4_temp
         
         # If Not QuickTIps Enabled THen Do the FocusOut Operations : 081418|TUE
-        if not qt.get():
+        if not self.qt.get():
             self.generate_button_cb()
             self.cv_load_interface_kcb()
             self.cv_udi_kill_all_kcb()
@@ -12123,7 +11819,6 @@ class uvm_testbench_gen:
         # Going to create the env intf widget buttons
         self.mc_env_intf_rem_pic_sic_buttons_cb()
 
-
     def generate_button_code(self):
         global mt_rm_sym
         global sc_agt_selected_started
@@ -16312,7 +16007,6 @@ class uvm_testbench_gen:
                 self.mc_edit_phase();
                 self.mc_script_config_phase();
                 self.mc_run_phase();
-
     
     def mc_create_phase(self):
         global mc_env_cfg_pool
@@ -17205,7 +16899,6 @@ class uvm_testbench_gen:
                     # Clearning the variable 
                     mc_curr_env_set_c = 0
    
-
     def mc_create_env(self, envname, envname_pkg):
         log.debug("mc_create_env : Calling the API to build Env File. envname %s, envname_pkg %s!\n"%(envname, envname_pkg))
         #os.system('$PROJ_ROOT/.bin_v3/generate_env.csh  %s %s' % (str(envname), str(envname_pkg),))
@@ -17215,30 +16908,25 @@ class uvm_testbench_gen:
         #os.system('$PROJ_ROOT/.bin_v3/generate_env_macros.csh  %s' % (str(envname),))
         self.generate_env_macros(str(envname))
    
-    
     def mc_create_intf(self, intfname, pkgname):
         log.debug("mc_create_intf : Calling the API to build Interface File. intfname %s, pkgname %s!\n"%(intfname, pkgname))
         #os.system('$PROJ_ROOT/.bin_v3/generate_interface.csh  %s %s' % (str(intfname), str(pkgname)))
         self.generate_interface(str(intfname))
        
-
     def mc_create_intf_wrapper(self, intfname, pkgname):
         log.debug("mc_create_intf_wrapper : Calling the API to build Interface Wrapper File. intfname %s, pkgname %s!\n"%(intfname, pkgname))
         #os.system('$PROJ_ROOT/.bin_v3/generate_interface_wrapper.csh  %s %s' % (str(intfname), str(pkgname)))
         self.generate_interface_wrapper(str(intfname))
-
 
     def mc_create_mon(self, monname, pkgname):
         log.debug("mc_create_mon : Calling the API to build Agent Monitor File. monname %s, pkgname %s!\n"%(monname, pkgname))
         #os.system('$PROJ_ROOT/.bin_v3/generate_monitor.csh  %s %s' % (str(monname), str(pkgname)))
         self.generate_monitor(str(monname), str(pkgname))
 
-
     def mc_create_env_mon(self, monname, pkgname):
         log.debug("mc_create_env_mon : Calling the API to build Env Monitor File. monname %s, pkgname %s!\n"%(monname, pkgname))
         #os.system('$PROJ_ROOT/.bin_v3/generate_env_monitor.csh  %s %s' % (str(monname), str(pkgname)))
         self.generate_env_monitor(str(monname), str(pkgname))
-
 
     def mc_create_scb(self, scbname, pkgname):
         log.debug("mc_create_scb : Calling the API to build Env Scoreboard File. scbname %s, pkgname %s!\n"%(scbname, pkgname))
@@ -31837,218 +31525,14 @@ class uvm_testbench_gen:
     # generate_sequence_item 
     #------------------------------------------------------------------------------
     def generate_sequence_item(self, class_name, pkg_name):
-        seq_itm_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name = class_name + "_sequence_item_base"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        seq_itm_stg = seq_itm_stg\
-        +("//===============================================================\n")\
-        +("// File Name        : <CLASS_NAME>\n")\
-        +("// Description      :\n")\
-        +("// Package Name     : <PACKAGE_NAME>\n")\
-        +("// Name             : <CREATE_NAME>\n")\
-        +("// File Created     : <CREATE_DATE>\n")\
-        +("// Copyright        :\n")\
-        +("//===============================================================\n")\
-        +("// NOTE: Please Don't Remove Any Comments or //--- Given Below\n")\
-        +("//===============================================================\n")\
-        +("\n")\
-        +("`ifndef <INC_GUARD>\n")\
-        +("`define <INC_GUARD>\n")\
-        +("\n")\
-        +("//---------------------------------------------------------------\n")\
-        +("// Class: <CLASS_NAME>\n")\
-        +("// \n")\
-        +("//---------------------------------------------------------------\n")\
-        +("\n")\
-        +("class <CLASS_NAME> extends uvm_sequence_item;\n")\
-        +(" //------------------------------------------\n")\
-        +(" // Data Members\n")\
-        +(" //------------------------------------------\n")\
-        +(" //------------------------------------------\n")\
-        +("\n")\
-        +(" //------------------------------------------\n")\
-        +(" // Constraints\n")\
-        +(" //------------------------------------------\n")\
-        +(" //------------------------------------------\n")\
-        +("\n")\
-        +(" //------------------------------------------\n")\
-        +(" // Methods\n")\
-        +(" //------------------------------------------\n")\
-        +(" //------------------------------------------\n")\
-        +("\n")\
-        +(" // -----------------\n")\
-        +(" // Standard UVM Methods\n")\
-        +(" // -----------------\n")\
-        +(' extern function       new(string name="<CLASS_NAME>");\n')\
-        +("\n")\
-        +(" // -----------------\n")\
-        +(" // User Defined APIs\n")\
-        +(" // -----------------\n")\
-        +("\n")\
-        +(" // -----------------\n")\
-        +(" // UVM Factory Registration\n")\
-        +(" // -----------------\n")\
-        +(" `uvm_object_utils_begin(<CLASS_NAME>)\n")\
-        +(" // -----------------\n")\
-        +(" // Add field configurations\n")\
-        +(" // -----------------\n")\
-        +(" // -----------------\n")\
-        +(" `uvm_object_utils_end\n")\
-        +("endclass: <CLASS_NAME>\n")\
-        +("\n")\
-        +("\n")\
-        +("//---------------------------------------------------------------\n")\
-        +("// Function: new\n")\
-        +("// \n")\
-        +("//---------------------------------------------------------------\n")\
-        +("\n")\
-        +('function <CLASS_NAME>::new(string name="<CLASS_NAME>");\n')\
-        +(" super.new(name);\n")\
-        +("endfunction: new\n")\
-        +("\n")\
-        +("`endif //<INC_GUARD>\n")
-
-        seq_itm_stg = seq_itm_stg.replace("<CLASS_NAME>", class_name)
-        seq_itm_stg = seq_itm_stg.replace("<PACKAGE_NAME>", pkg_name)
-        seq_itm_stg = seq_itm_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        seq_itm_stg = seq_itm_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        seq_itm_stg = seq_itm_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        seq_itm_stg_file = open("%s.sv"%(class_name), "w")
-        seq_itm_stg_arr = seq_itm_stg.split('µ')
-        for lines in seq_itm_stg_arr:
-            seq_itm_stg_file.write(lines)
-        seq_itm_stg_file.close()
-        
-        # Cleaning Local Variables
-        seq_itm_stg = ''
-        seq_itm_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'sequence_item')
     #------------------------------------------------------------------------------
-
 
     #------------------------------------------------------------------------------
     # generate_sequence 
     #------------------------------------------------------------------------------
     def generate_sequence(self, class_name, pkg_name):
-        seq_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_sequence"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        seq_stg = seq_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_sequence #(<PREFIX_NAME>_sequence_item_base);\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function       new(string name="<CLASS_NAME>");\n')\
-        +(' extern virtual task   body();\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_object_utils(<CLASS_NAME>)\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name="<CLASS_NAME>");\n')\
-        +(' super.new(name);\n')\
-        +('endfunction: new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: body\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::body();\n')\
-        +(' super.body();\n')\
-        +('endtask: body\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')\
-
-        seq_stg = seq_stg.replace("<CLASS_NAME>", class_name)
-        seq_stg = seq_stg.replace("<PREFIX_NAME>", class_name_org)
-        seq_stg = seq_stg.replace("<PACKAGE_NAME>", pkg_name)
-        seq_stg = seq_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        seq_stg = seq_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        seq_stg = seq_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        seq_stg_file = open("%s.sv"%(class_name), "w")
-        seq_stg_arr = seq_stg.split('µ')
-        for lines in seq_stg_arr:
-            seq_stg_file.write(lines)
-        seq_stg_file.close()
-        
-        # Cleaning Local Variables
-        seq_stg = ''
-        seq_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'sequence')
     #------------------------------------------------------------------------------
 
 
@@ -32056,96 +31540,7 @@ class uvm_testbench_gen:
     # generate_sequencer 
     #------------------------------------------------------------------------------
     def generate_sequencer(self, class_name, pkg_name):
-        seqr_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_sequencer"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        seqr_stg = seqr_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_sequencer #(<PREFIX_NAME>_sequence_item_base);\n')\
-        +('\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' extern function       new   (string name= "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern function void  build_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // User Defined APIs\n')\
-        +('\n')\
-        +(' // UVM Factory Registration Macro\n')\
-        +('`uvm_component_utils(<CLASS_NAME>)\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction: new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')
-
-        seqr_stg = seqr_stg.replace("<CLASS_NAME>", class_name)
-        seqr_stg = seqr_stg.replace("<PREFIX_NAME>", class_name_org)
-        seqr_stg = seqr_stg.replace("<PACKAGE_NAME>", pkg_name)
-        seqr_stg = seqr_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        seqr_stg = seqr_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        seqr_stg = seqr_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        seqr_stg_file = open("%s.sv"%(class_name), "w")
-        seqr_stg_arr = seqr_stg.split('µ')
-        for lines in seqr_stg_arr:
-            seqr_stg_file.write(lines)
-        seqr_stg_file.close()
-        
-        # Cleaning Local Variables
-        seqr_stg = ''
-        seqr_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'sequencer')
     #------------------------------------------------------------------------------
 
 
@@ -32153,247 +31548,7 @@ class uvm_testbench_gen:
     # generate_driver 
     #------------------------------------------------------------------------------
     def generate_driver(self, class_name, pkg_name):
-        drv_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_driver"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        drv_stg = drv_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_driver #(<PREFIX_NAME>_sequence_item_base);\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Configuration Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function              new(string name= "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern virtual function void build_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void connect_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' extern virtual task          run_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void extract_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void check_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void report_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void final_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_component_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_component_utils_end\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction: new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Get Agent Configuration\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: connect_phase\n')\
-        +('// \n')\
-        +('// Establish cross-component connections\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::connect_phase(uvm_phase phase);\n')\
-        +(' super.connect_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In connect_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: connect_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: end_of_elaboration_phase\n')\
-        +('// \n')\
-        +('// Fine-tune the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' super.end_of_elaboration_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In end_of_elaboration_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: end_of_elaboration_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: start_of_simulation_phase\n')\
-        +('// \n')\
-        +('// Get ready for DUT to be simulated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' super.start_of_simulation_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In start_of_simulation_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: start_of_simulation_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: run_phase\n')\
-        +('// \n')\
-        +('// Stimulate the DUT\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::run_phase(uvm_phase phase);\n')\
-        +(' super.run_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In run_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: run_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: extract_phase\n')\
-        +('// \n')\
-        +('// Extract data from different points of the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::extract_phase(uvm_phase phase);\n')\
-        +(' super.extract_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In extract_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: extract_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: check_phase\n')\
-        +('// \n')\
-        +('// Check for any unexpected conditions in the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::check_phase(uvm_phase phase);\n')\
-        +(' super.check_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In check_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: check_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: report_phase\n')\
-        +('// \n')\
-        +('// Report results of the test\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::report_phase(uvm_phase phase);\n')\
-        +(' super.report_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In report_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: report_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: final_phase\n')\
-        +('// \n')\
-        +('// Tie up loose ends. All Simulation activities are done.\n')\
-        +('// \n')\
-        +('// Closing files, Ending co-simulation engines etc.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::final_phase(uvm_phase phase);\n')\
-        +(' super.final_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In final_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: final_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')\
-
-        drv_stg = drv_stg.replace("<CLASS_NAME>", class_name)
-        drv_stg = drv_stg.replace("<PREFIX_NAME>", class_name_org)
-        drv_stg = drv_stg.replace("<PACKAGE_NAME>", pkg_name)
-        drv_stg = drv_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        drv_stg = drv_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        drv_stg = drv_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        drv_stg_file = open("%s.sv"%(class_name), "w")
-        drv_stg_arr = drv_stg.split('µ')
-        for lines in drv_stg_arr:
-            drv_stg_file.write(lines)
-        drv_stg_file.close()
-        
-        # Cleaning Local Variables
-        drv_stg = ''
-        drv_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'driver')
     #------------------------------------------------------------------------------
 
 
@@ -32401,255 +31556,7 @@ class uvm_testbench_gen:
     # generate_monitor 
     #------------------------------------------------------------------------------
     def generate_monitor(self, class_name, pkg_name):
-        mon_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_monitor"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        mon_stg = mon_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_monitor;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Configuration Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //--------------------------------------------\n')\
-        +(' // Port Declaration\n')\
-        +(' //--------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function              new(string name= "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern virtual function void build_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void connect_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' extern virtual task          run_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void extract_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void check_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void report_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void final_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_component_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_component_utils_end\n')\
-        +('endclass :<CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction :new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Port Construction\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Get Agent Configuration\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: connect_phase\n')\
-        +('// \n')\
-        +('// Establish cross-component connections\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::connect_phase(uvm_phase phase);\n')\
-        +(' super.connect_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In connect_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: connect_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: run_phase\n')\
-        +('// \n')\
-        +('// Stimulate the DUT\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::run_phase(uvm_phase phase);\n')\
-        +(' super.run_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In run_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: run_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: end_of_elaboration_phase\n')\
-        +('// \n')\
-        +('// Fine-tune the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' super.end_of_elaboration_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In end_of_elaboration_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: end_of_elaboration_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: start_of_simulation_phase\n')\
-        +('// \n')\
-        +('// Get ready for DUT to be simulated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' super.start_of_simulation_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In start_of_simulation_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: start_of_simulation_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: extract_phase\n')\
-        +('// \n')\
-        +('// Extract data from different points of the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::extract_phase(uvm_phase phase);\n')\
-        +(' super.extract_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In extract_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: extract_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: check_phase\n')\
-        +('// \n')\
-        +('// Check for any unexpected conditions in the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::check_phase(uvm_phase phase);\n')\
-        +(' super.check_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In check_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: check_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: report_phase\n')\
-        +('// \n')\
-        +('// Report results of the test\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::report_phase(uvm_phase phase);\n')\
-        +(' super.report_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In report_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: report_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: final_phase\n')\
-        +('// \n')\
-        +('// Tie up loose ends. All Simulation activities are done.\n')\
-        +('// \n')\
-        +('// Closing files, Ending co-simulation engines etc.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::final_phase(uvm_phase phase);\n')\
-        +(' super.final_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In final_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: final_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')
-
-        mon_stg = mon_stg.replace("<CLASS_NAME>", class_name)
-        mon_stg = mon_stg.replace("<PREFIX_NAME>", class_name_org)
-        mon_stg = mon_stg.replace("<PACKAGE_NAME>", pkg_name)
-        mon_stg = mon_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        mon_stg = mon_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        mon_stg = mon_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        mon_stg_file = open("%s.sv"%(class_name), "w")
-        mon_stg_arr = mon_stg.split('µ')
-        for lines in mon_stg_arr:
-            mon_stg_file.write(lines)
-        mon_stg_file.close()
-        
-        # Cleaning Local Variables
-        mon_stg = ''
-        mon_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'monitor')
     #------------------------------------------------------------------------------
 
 
@@ -32657,243 +31564,7 @@ class uvm_testbench_gen:
     # generate_scoreboard 
     #------------------------------------------------------------------------------
     def generate_scoreboard(self, class_name, pkg_name):
-        scb_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name = class_name + "_scoreboard"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        scb_stg = scb_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('// TLM Analysis Imp Declaration\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_scoreboard;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Configuration Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Port Declaration\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function              new(string name= "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern virtual function void build_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void connect_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' extern virtual task          run_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void extract_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void check_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void report_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void final_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_component_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_component_utils_end\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction: new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Get Environment Configuration\n')\
-        +('\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: connect_phase\n')\
-        +('// \n')\
-        +('// Establish cross-component connections\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::connect_phase(uvm_phase phase);\n')\
-        +(' super.connect_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In connect_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: connect_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: end_of_elaboration_phase\n')\
-        +('// \n')\
-        +('// Fine-tune the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' super.end_of_elaboration_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In end_of_elaboration_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: end_of_elaboration_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: start_of_simulation_phase\n')\
-        +('// \n')\
-        +('// Get ready for DUT to be simulated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' super.start_of_simulation_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In start_of_simulation_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: start_of_simulation_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: run_phase\n')\
-        +('// \n')\
-        +('// Stimulate the DUT\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::run_phase(uvm_phase phase);\n')\
-        +(' super.run_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In run_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: run_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: extract_phase\n')\
-        +('// \n')\
-        +('// Extract data from different points of the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::extract_phase(uvm_phase phase);\n')\
-        +(' super.extract_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In extract_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: extract_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: check_phase\n')\
-        +('// \n')\
-        +('// Check for any unexpected conditions in the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::check_phase(uvm_phase phase);\n')\
-        +(' super.check_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In check_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: check_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: report_phase\n')\
-        +('// \n')\
-        +('// Report results of the test\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::report_phase(uvm_phase phase);\n')\
-        +(' super.report_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In report_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: report_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: final_phase\n')\
-        +('// \n')\
-        +('// Tie up loose ends. All Simulation activities are done.\n')\
-        +('// \n')\
-        +('// Closing files, Ending co-simulation engines etc.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::final_phase(uvm_phase phase);\n')\
-        +(' super.final_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In final_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: final_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')
-
-        scb_stg = scb_stg.replace("<CLASS_NAME>", class_name)
-        scb_stg = scb_stg.replace("<PACKAGE_NAME>", pkg_name)
-        scb_stg = scb_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        scb_stg = scb_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        scb_stg = scb_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        scb_stg_file = open("%s.sv"%(class_name), "w")
-        scb_stg_arr = scb_stg.split('µ')
-        for lines in scb_stg_arr:
-            scb_stg_file.write(lines)
-        scb_stg_file.close()
-        
-        # Cleaning Local Variables
-        scb_stg = ''
-        scb_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'scoreboard')
     #------------------------------------------------------------------------------
 
 
@@ -32901,427 +31572,7 @@ class uvm_testbench_gen:
     # generate_test 
     #------------------------------------------------------------------------------
     def generate_test(self, class_name, pkg_name):
-        test_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name = class_name + "_test"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        test_stg = test_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_test;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // Environment Data Members\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Component Declaration\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // Environments Instantiation\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Configuration Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // Environment Configuration Object Instantiation\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Misc Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +(' uvm_table_printer                   printer;\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function              new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern virtual function void build_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void connect_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' extern virtual task pre_reset_phase(uvm_phase phase); \n')\
-        +(' extern virtual task reset_phase(uvm_phase phase);\n')\
-        +(' extern virtual task post_reset_phase(uvm_phase phase);\n')\
-        +(' extern virtual task pre_configure_phase(uvm_phase phase);\n')\
-        +(' extern virtual task configure_phase(uvm_phase phase);\n')\
-        +(' extern virtual task post_configure_phase(uvm_phase phase);\n')\
-        +(' extern virtual task pre_main_phase(uvm_phase phase);\n')\
-        +(' extern virtual task main_phase(uvm_phase phase);\n')\
-        +(' extern virtual task post_main_phase(uvm_phase phase);\n')\
-        +(' extern virtual task pre_shutdown_phase(uvm_phase phase);\n')\
-        +(' extern virtual task shutdown_phase(uvm_phase phase);\n')\
-        +(' extern virtual task post_shutdown_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void extract_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void check_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void report_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void final_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_component_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_component_utils_end\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction :new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get Configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct Components and Configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Construct Environments\n')\
-        +('\n')\
-        +(' // Construct Environments Configuration\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // Configure Environments\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Misc Configuration\n')\
-        +(' // ------------------\n')\
-        +(' printer = new();\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: connect_phase\n')\
-        +('// \n')\
-        +('// Establish cross-component connections\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::connect_phase(uvm_phase phase);\n')\
-        +(' super.connect_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In connect_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: connect_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: end_of_elaboration_phase\n')\
-        +('// \n')\
-        +('// Fine-tune the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' super.end_of_elaboration_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In end_of_elaboration_phase...!!", UVM_DEBUG);\n')\
-        +('`uvm_info(get_type_name(), $sformatf("Printing the Test Topology : %s", this.sprint(printer)), UVM_LOW)\n')\
-        +('endfunction: end_of_elaboration_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: start_of_simulation_phase\n')\
-        +('// \n')\
-        +('// Get ready for DUT to be simulated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' super.start_of_simulation_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In start_of_simulation_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: start_of_simulation_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: pre_reset_phase\n')\
-        +('// \n')\
-        +('// It is used to perform the operations before applying reset to DUT\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::pre_reset_phase(uvm_phase phase);\n')\
-        +(' super.pre_reset_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In pre_reset_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: pre_reset_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: reset_phase\n')\
-        +('// \n')\
-        +('// It is used to generate the reset and apply to DUT or any interface\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::reset_phase(uvm_phase phase);\n')\
-        +(' super.reset_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In reset_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: reset_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: post_reset_phase\n')\
-        +('// \n')\
-        +('// It is used to generate the reset and apply to DUT or any interface\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::post_reset_phase(uvm_phase phase);\n')\
-        +(' super.post_reset_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In post_reset_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: post_reset_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: pre_configure_phase\n')\
-        +('// \n')\
-        +('// This phase is used to gather the configuration information and\n')\
-        +('// to wait for the components to be ready for the configuration\n')\
-        +('// after rese\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::pre_configure_phase(uvm_phase phase);\n')\
-        +(' super.pre_configure_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In pre_configure_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: pre_configure_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: configure_phase\n')\
-        +('// \n')\
-        +('// This phase is used to configure the DUT and to initialize the\n')\
-        +('// memories in the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::configure_phase(uvm_phase phase);\n')\
-        +(' super.configure_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In configure_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: configure_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: post_configure_phase\n')\
-        +('// \n')\
-        +('// This phase is used to wait for the configuration information\n')\
-        +('// to progress to the DUT. It is used to ensure that the main\n')\
-        +('// testcase can started for the simulation.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::post_configure_phase(uvm_phase phase);\n')\
-        +(' super.post_configure_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In post_configure_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: post_configure_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: pre_main_phase\n')\
-        +('// \n')\
-        +('// It is to ensure that all the components are ready to start the\n')\
-        +('// simulation\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::pre_main_phase(uvm_phase phase);\n')\
-        +(' super.pre_main_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In pre_main_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: pre_main_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: main_phase\n')\
-        +('// \n')\
-        +('// It is to ensure that all the components are ready to start the\n')\
-        +('// simulation\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::main_phase(uvm_phase phase);\n')\
-        +(' super.main_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In main_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: main_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: post_main_phase\n')\
-        +('// \n')\
-        +('// This phase is to take care of any finalization of the main_phase\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::post_main_phase(uvm_phase phase);\n')\
-        +(' super.post_main_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In post_main_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: post_main_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: pre_shutdown_phase\n')\
-        +('// \n')\
-        +('// This phase is to wait for the stimulus generation which is still\n')\
-        +('// generated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::pre_shutdown_phase(uvm_phase phase);\n')\
-        +(' super.pre_shutdown_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In pre_shutdown_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: pre_shutdown_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: shutdown_phase\n')\
-        +('// \n')\
-        +('// This phase is used to ensure that all the stimulus has reached\n')\
-        +('// the DUT and the outputs are taken from the DUT\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::shutdown_phase(uvm_phase phase);\n')\
-        +(' super.shutdown_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In shutdown_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: shutdown_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: post_shutdown_phase\n')\
-        +('// \n')\
-        +('// It is to perform any final activities before exiting from the \n')\
-        +('// actual simulation phases\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::post_shutdown_phase(uvm_phase phase);\n')\
-        +(' super.post_shutdown_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In post_shutdown_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: post_shutdown_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: extract_phase\n')\
-        +('// \n')\
-        +('// Extract data from different points of the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::extract_phase(uvm_phase phase);\n')\
-        +(' super.extract_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In extract_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: extract_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: check_phase\n')\
-        +('// \n')\
-        +('// Check for any unexpected conditions in the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::check_phase(uvm_phase phase);\n')\
-        +(' super.check_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In check_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: check_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: report_phase\n')\
-        +('// \n')\
-        +('// Report results of the test\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::report_phase(uvm_phase phase);\n')\
-        +(' super.report_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In report_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: report_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: final_phase\n')\
-        +('// \n')\
-        +('// Tie up loose ends. All Simulation activities are done.\n')\
-        +('// \n')\
-        +('// Closing files, Ending co-simulation engines etc.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::final_phase(uvm_phase phase);\n')\
-        +(' super.final_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In final_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: final_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')\
-
-        test_stg = test_stg.replace("<CLASS_NAME>", class_name)
-        test_stg = test_stg.replace("<PACKAGE_NAME>", pkg_name)
-        test_stg = test_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        test_stg = test_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        test_stg = test_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        test_stg_file = open("%s.sv"%(class_name), "w")
-        test_stg_arr = test_stg.split('µ')
-        for lines in test_stg_arr:
-            test_stg_file.write(lines)
-        test_stg_file.close()
-        
-        # Cleaning Local Variables
-        test_stg = ''
-        test_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'test')
     #------------------------------------------------------------------------------
    
 
@@ -33329,54 +31580,7 @@ class uvm_testbench_gen:
     # generate_interface 
     #------------------------------------------------------------------------------
     def generate_interface(self, intf_name):
-        intf_stg = ''
-
-        if intf_name == "":
-            print("ERROR: Please Specify Interface Name. Exiting The Tool!\n")
-            return None
-        
-        intf_name = intf_name + "_interface"
-        print("INFO: Generating Interface %s"%(intf_name))
-
-        if (os.path.isfile('%s.sv'%intf_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(intf_name, intf_name))
-            os.rename('%s.sv %s.bak'%(intf_name, intf_name))
-
-        intf_stg = intf_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <INTERFACE_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Interface: <INTERFACE_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('interface <INTERFACE_NAME> ;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Signal Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('endinterface: <INTERFACE_NAME>\n')
-
-        intf_stg = intf_stg.replace("<INTERFACE_NAME>", intf_name)
-        intf_stg = intf_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        intf_stg = intf_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        intf_stg_file = open("%s.sv"%(intf_name), "w")
-        intf_stg_arr = intf_stg.split('µ')
-        for lines in intf_stg_arr:
-            intf_stg_file.write(lines)
-        intf_stg_file.close()
-        
-        # Cleaning Local Variables
-        intf_stg = ''
-        intf_stg_arr = ''
+        return self.uvm_template_gen.generate_from_template(intf_name, 'dummy', 'interface')
     #------------------------------------------------------------------------------
 
     
@@ -33384,294 +31588,7 @@ class uvm_testbench_gen:
     # generate_env 
     #------------------------------------------------------------------------------
     def generate_env(self, class_name, pkg_name):
-        env_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_environment"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        env_stg = env_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_env;\n')\
-        +(' //--------------------------------------------\n')\
-        +(' // Components Instantiation\n')\
-        +(' //--------------------------------------------\n')\
-        +('\n')\
-        +(' // Environment Monitors Instantiation\n')\
-        +('\n')\
-        +(' // Environment Scoreboards Instantiation\n')\
-        +('\n')\
-        +(' // Environment Agents Instantiation\n')\
-        +('\n')\
-        +(' // Sub-Environments Instantiation\n')\
-        +('\n')\
-        +(' //--------------------------------------------\n')\
-        +(' // RAL Adapter and Predictor Instantiation\n')\
-        +(' //--------------------------------------------\n')\
-        +('\n')\
-        +(' //--------------------------------------------\n')\
-        +(' // Object Instantiation\n')\
-        +(' //--------------------------------------------\n')\
-        +('\n')\
-        +(' // Environment Configuration Object Instantiation\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function              new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern virtual function void build_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void connect_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void extract_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void check_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void report_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void final_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_component_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_component_utils_end\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction: new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Get Environment Configuration\n')\
-        +('\n')\
-        +(' // Get Environment Monitors Configuration\n')\
-        +('\n')\
-        +(' // Get Environment Scoreboards Configuration\n')\
-        +('\n')\
-        +(' // Get Environment Agents Configuration\n')\
-        +('\n')\
-        +(' // Get Sub-Environments Configuration\n')\
-        +('\n')\
-        +(' // Get Interface Configuration\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // Construct Environment Monitors\n')\
-        +('\n')\
-        +(' // Construct Environment Scoreboards\n')\
-        +('\n')\
-        +(' // Construct Environment Agents\n')\
-        +('\n')\
-        +(' // Construct Sub-Environments\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // Configure Environment Monitors\n')\
-        +('\n')\
-        +(' // Configure Environment Scoreboards\n')\
-        +('\n')\
-        +(' // Configure Environment Agents\n')\
-        +('\n')\
-        +(' // Configure Sub-Environments\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure RAL Models\n')\
-        +(' // ------------------\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: connect_phase\n')\
-        +('// \n')\
-        +('// Establish cross-component connections\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::connect_phase(uvm_phase phase);\n')\
-        +(' super.connect_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In connect_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -------------\n')\
-        +(' // Connect Virtual Interface to Monitor\n')\
-        +(' // -------------\n')\
-        +('\n')\
-        +(' // -------------\n')\
-        +(' // Connect Analysis Port\n')\
-        +(' // -------------\n')\
-        +('\n')\
-        +(' // -------------\n')\
-        +(' // Adding Agent Sequencer To The Sequencer Container\n')\
-        +(' // -------------\n')\
-        +('\n')\
-        +(' // -------------\n')\
-        +(' // Setup RAL Models\n')\
-        +(' // -------------\n')\
-        +('endfunction: connect_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: end_of_elaboration_phase\n')\
-        +('// \n')\
-        +('// Fine-tune the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' super.end_of_elaboration_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In end_of_elaboration_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: end_of_elaboration_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: start_of_simulation_phase\n')\
-        +('// \n')\
-        +('// Get ready for DUT to be simulated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' super.start_of_simulation_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In start_of_simulation_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: start_of_simulation_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: extract_phase\n')\
-        +('// \n')\
-        +('// Extract data from different points of the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::extract_phase(uvm_phase phase);\n')\
-        +(' super.extract_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In extract_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: extract_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: check_phase\n')\
-        +('// \n')\
-        +('// Check for any unexpected conditions in the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::check_phase(uvm_phase phase);\n')\
-        +(' super.check_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In check_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: check_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: report_phase\n')\
-        +('// \n')\
-        +('// Report results of the test\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::report_phase(uvm_phase phase);\n')\
-        +(' super.report_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In report_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: report_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: final_phase\n')\
-        +('// \n')\
-        +('// Tie up loose ends. All Simulation activities are done.\n')\
-        +('// \n')\
-        +('// Closing files, Ending co-simulation engines etc.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::final_phase(uvm_phase phase);\n')\
-        +(' super.final_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In final_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: final_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')            
-
-        env_stg = env_stg.replace("<CLASS_NAME>", class_name)
-        env_stg = env_stg.replace("<PACKAGE_NAME>", pkg_name)
-        env_stg = env_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        env_stg = env_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        env_stg = env_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        env_stg_file = open("%s.sv"%(class_name), "w")
-        env_stg_arr = env_stg.split('µ')
-        for lines in env_stg_arr:
-            env_stg_file.write(lines)
-        env_stg_file.close()
-        
-        # Cleaning Local Variables
-        env_stg = ''
-        env_stg_arr = ''
-    
+        self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'env')
         # Calling Generate Environment Configuration 
         self.generate_env_configuration(class_name, pkg_name)
     #------------------------------------------------------------------------------
@@ -33681,164 +31598,7 @@ class uvm_testbench_gen:
     # generate_env_configuration 
     #------------------------------------------------------------------------------
     def generate_env_configuration(self, class_name, pkg_name):
-        env_cfg_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_config"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        env_cfg_stg = env_cfg_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_object;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Monitor Knobs\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Scoreboard Knobs\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Agent Variables\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Agent Config Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Sub-Environment Config Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function       new(string name="<CLASS_NAME>");\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_object_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_object_utils_end\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name="<CLASS_NAME>");\n')\
-        +(' super.new(name);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Get Environment Monitors Configuration\n')\
-        +('\n')\
-        +(' // Get Environment Scoreboards Configuration\n')\
-        +('\n')\
-        +(' // Get Environment Agents Configuration\n')\
-        +('\n')\
-        +(' // Get Sub-Environments Configuration\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // Construct Environment Monitors Configuration\n')\
-        +('\n')\
-        +(' // Construct Environment Scoreboards Configuration\n')\
-        +('\n')\
-        +(' // Construct Environment Agents Configuration\n')\
-        +('\n')\
-        +(' // Construct Sub-Environments Configuration\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // Configure Environment Monitors Configuration\n')\
-        +('\n')\
-        +(' // Configure Environment Scoreboards Configuration\n')\
-        +('\n')\
-        +(' // Configure Environment Agents Configuration\n')\
-        +('\n')\
-        +(' // Configure Sub-Environments Configuration\n')\
-        +('endfunction: new\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')
-
-        env_cfg_stg = env_cfg_stg.replace("<CLASS_NAME>", class_name)
-        env_cfg_stg = env_cfg_stg.replace("<PACKAGE_NAME>", pkg_name)
-        env_cfg_stg = env_cfg_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        env_cfg_stg = env_cfg_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        env_cfg_stg = env_cfg_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        env_cfg_stg_file = open("%s.sv"%(class_name), "w")
-        env_cfg_stg_arr = env_cfg_stg.split('µ')
-        for lines in env_cfg_stg_arr:
-            env_cfg_stg_file.write(lines)
-        env_cfg_stg_file.close()
-        
-        # Cleaning Local Variables
-        env_cfg_stg = ''
-        env_cfg_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'env_cfg')
     #------------------------------------------------------------------------------
 
 
@@ -33846,50 +31606,7 @@ class uvm_testbench_gen:
     # generate_env_macros 
     #------------------------------------------------------------------------------
     def generate_env_macros(self, class_name):
-        env_mac_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        class_name_org = class_name
-        class_name = class_name + "_environment_macros"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        env_mac_stg = env_mac_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <ENV_MACRO_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     :\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//=============================================================== \n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Interface Wrapper Macro Definition\n')\
-        +('//---------------------------------------------------------------\n')
-
-        env_mac_stg = env_mac_stg.replace("<ENV_MACRO_NAME>", class_name)
-        env_mac_stg = env_mac_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        env_mac_stg = env_mac_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        env_mac_stg_file = open("%s.sv"%(class_name), "w")
-        env_mac_stg_arr = env_mac_stg.split('µ')
-        for lines in env_mac_stg_arr:
-            env_mac_stg_file.write(lines)
-        env_mac_stg_file.close()
-        
-        # Cleaning Local Variables
-        env_mac_stg = ''
-        env_mac_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(class_name, 'pkg_name', 'env_cfg')
     #------------------------------------------------------------------------------
     
 
@@ -33897,69 +31614,7 @@ class uvm_testbench_gen:
     # generate_interface_wrapper 
     #------------------------------------------------------------------------------
     def generate_interface_wrapper(self, intf_name):
-        int_wra_stg = ''
-
-        if intf_name == "":
-            print("ERROR: Please Specify Interface Name. Exiting The Tool!\n")
-            return None
-        
-        class_name_org = intf_name
-        intf_name = intf_name + "_interface_wrapper"
-        print("INFO: Generating class %s"%(intf_name))
-
-        if (os.path.isfile('%s.sv'%intf_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(intf_name, intf_name))
-            os.rename('%s.sv %s.bak'%(intf_name, intf_name))
-
-        int_wra_stg = int_wra_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <INTERFACE_WRAPPER_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Interface Wrapper Name           : <INTERFACE_WRAPPER_NAME>\n')\
-        +('// Interface Wrapper Description    :\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('module <INTERFACE_WRAPPER_NAME> #()();\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Importing Base Library Packages\n')\
-        +(' //------------------------------------------\n')\
-        +(' import uvm_pkg::*;\n')\
-        +('`include "uvm_macros.svh";\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Registering Interface Into config_db\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Connectivity Details\n')\
-        +(' //------------------------------------------\n')\
-        +('endmodule: <INTERFACE_WRAPPER_NAME>\n')
-
-        int_wra_stg = int_wra_stg.replace("<INTERFACE_WRAPPER_NAME>", intf_name)
-        int_wra_stg = int_wra_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        int_wra_stg = int_wra_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        int_wra_stg_file = open("%s.sv"%(intf_name), "w")
-        int_wra_stg_arr = int_wra_stg.split('µ')
-        for lines in int_wra_stg_arr:
-            int_wra_stg_file.write(lines)
-        int_wra_stg_file.close()
-        
-        # Cleaning Local Variables
-        int_wra_stg = ''
-        int_wra_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(intf_name, 'pkg_name', 'interface_wrapper')
     #------------------------------------------------------------------------------
 
     
@@ -33967,255 +31622,7 @@ class uvm_testbench_gen:
     # generate_env_monitor 
     #------------------------------------------------------------------------------
     def generate_env_monitor(self, class_name, pkg_name):
-        env_mon_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_monitor"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        env_mon_stg = env_mon_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_monitor;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Configuration Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //--------------------------------------------\n')\
-        +(' // Port Declaration\n')\
-        +(' //--------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function              new(string name= "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern virtual function void build_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void connect_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' extern virtual task          run_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void extract_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void check_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void report_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void final_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_component_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_component_utils_end\n')\
-        +('endclass :<CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction :new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Port Construction\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Get Environment Configuration\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: connect_phase\n')\
-        +('// \n')\
-        +('// Establish cross-component connections\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::connect_phase(uvm_phase phase);\n')\
-        +(' super.connect_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In connect_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: connect_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Task: run_phase\n')\
-        +('// \n')\
-        +('// Stimulate the DUT\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('task <CLASS_NAME>::run_phase(uvm_phase phase);\n')\
-        +(' super.run_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In run_phase...!!", UVM_DEBUG);\n')\
-        +('endtask: run_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: end_of_elaboration_phase\n')\
-        +('// \n')\
-        +('// Fine-tune the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' super.end_of_elaboration_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In end_of_elaboration_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: end_of_elaboration_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: start_of_simulation_phase\n')\
-        +('// \n')\
-        +('// Get ready for DUT to be simulated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' super.start_of_simulation_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In start_of_simulation_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: start_of_simulation_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: extract_phase\n')\
-        +('// \n')\
-        +('// Extract data from different points of the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::extract_phase(uvm_phase phase);\n')\
-        +(' super.extract_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In extract_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: extract_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: check_phase\n')\
-        +('// \n')\
-        +('// Check for any unexpected conditions in the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::check_phase(uvm_phase phase);\n')\
-        +(' super.check_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In check_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: check_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: report_phase\n')\
-        +('// \n')\
-        +('// Report results of the test\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::report_phase(uvm_phase phase);\n')\
-        +(' super.report_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In report_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: report_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: final_phase\n')\
-        +('// \n')\
-        +('// Tie up loose ends. All Simulation activities are done.\n')\
-        +('// \n')\
-        +('// Closing files, Ending co-simulation engines etc.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::final_phase(uvm_phase phase);\n')\
-        +(' super.final_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In final_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: final_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')
-
-        env_mon_stg = env_mon_stg.replace("<CLASS_NAME>", class_name)
-        env_mon_stg = env_mon_stg.replace("<PREFIX_NAME>", class_name_org)
-        env_mon_stg = env_mon_stg.replace("<PACKAGE_NAME>", pkg_name)
-        env_mon_stg = env_mon_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        env_mon_stg = env_mon_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        env_mon_stg = env_mon_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        env_mon_stg_file = open("%s.sv"%(class_name), "w")
-        env_mon_stg_arr = env_mon_stg.split('µ')
-        for lines in env_mon_stg_arr:
-            env_mon_stg_file.write(lines)
-        env_mon_stg_file.close()
-        
-        # Cleaning Local Variables
-        env_mon_stg = ''
-        env_mon_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'env_monitor')
     #------------------------------------------------------------------------------
 
 
@@ -34223,142 +31630,7 @@ class uvm_testbench_gen:
     # generate_package 
     #------------------------------------------------------------------------------
     def generate_package(self, pkg_name):
-        pkg_stg = ''
-
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-        
-        class_name_org = pkg_name
-        pkg_name = pkg_name + "_package"
-        print("INFO: Generating Package %s"%(pkg_name))
-
-        if (os.path.isfile('%s.sv'%pkg_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(pkg_name, pkg_name))
-            os.rename('%s.sv %s.bak'%(pkg_name, pkg_name))
-
-        pkg_stg = pkg_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <PACKAGE_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Package Name            : <PACKAGE_NAME>\n')\
-        +('// Package Description     :\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('//------------------------------------------\n')\
-        +('// Interface Instance\n')\
-        +('//------------------------------------------\n')\
-        +('\n')\
-        +('package <PACKAGE_NAME>;\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Importing Base Library Packages\n')\
-        +(' //------------------------------------------\n')\
-        +(' import uvm_pkg::*;\n')\
-        +(' \n')\
-        +(' //------------------------------------------\n')\
-        +(' // Importing Base Library Macros \n')\
-        +(' //------------------------------------------\n')\
-        +('`include "uvm_macros.svh"\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Defines\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Importing Packages\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // 3rd Party VIP Packages\n')\
-        +('\n')\
-        +(' // Other VIP Packages\n')\
-        +('\n')\
-        +(' // RAL Packages\n')\
-        +('\n')\
-        +(' // Sequence Item Packages\n')\
-        +('\n')\
-        +(' // Sequence Packages\n')\
-        +('\n')\
-        +(' // Environment Packages\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Including VIP Files\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Register Models\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Configuration Files\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // Agent Configuration Files\n')\
-        +('\n')\
-        +(' // Environment Configuration Files\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Sequence Item Objects\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // Environment Monitor Sequence Items\n')\
-        +('\n')\
-        +(' // Agent Driver Sequence Items\n')\
-        +('\n')\
-        +(' // Agent Monitor Sequence Items\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Sequence Objects\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Components\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // Agent Monitor Files\n')\
-        +('\n')\
-        +(' // Agent Driver & Sequencer Files\n')\
-        +('\n')\
-        +(' // Agent Files\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Environment Components\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // Environment Monitor Files\n')\
-        +('\n')\
-        +(' // Environment Scoreboard Files\n')\
-        +('\n')\
-        +(' // Environment Files\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Test Components\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +('endpackage: <PACKAGE_NAME>\n')
-
-        pkg_stg = pkg_stg.replace("<PACKAGE_NAME>", pkg_name)
-        pkg_stg = pkg_stg.replace("<INC_GUARD>", "INC_" + pkg_name.upper() + "_SV")
-        pkg_stg = pkg_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        pkg_stg = pkg_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        pkg_stg_file = open("%s.sv"%(pkg_name), "w")
-        pkg_stg_arr = pkg_stg.split('µ')
-        for lines in pkg_stg_arr:
-            pkg_stg_file.write(lines)
-        pkg_stg_file.close()
-        
-        # Cleaning Local Variables
-        pkg_stg = ''
-        pkg_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(pkg_name, 'pkg_name', 'pkg')
     #------------------------------------------------------------------------------
 
 
@@ -34366,119 +31638,7 @@ class uvm_testbench_gen:
     # generate_top_mc 
     #------------------------------------------------------------------------------
     def generate_top_mc(self, top_name):
-        top_stg = ''
-
-        if top_name == "":
-            print("ERROR: Please Specify Interface Name. Exiting The Tool!\n")
-            return None
-        
-        class_name_org = top_name
-        top_name = top_name + "_tb_top"
-        print("INFO: Generating class %s"%(top_name))
-
-        if (os.path.isfile('%s.sv'%top_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(top_name, top_name))
-            os.rename('%s.sv %s.bak'%(top_name, top_name))
-
-        top_stg = top_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <TOP_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('module <TOP_NAME>();\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Including & Importing Required UVM Libraries\n')\
-        +(' //------------------------------------------\n')\
-        +(' import   uvm_pkg::*;\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Importing User Defined Packages\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Local Variables\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Event\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Clock Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interfaces Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface containers\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // DUT Wrapper Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Assertions & Timing Checks\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface - Virtual Interface Config_db Setup\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +('\n')\
-        +(' initial begin\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Default Configurations\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Interface Containers Creation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Pass the Interface Containers\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Run Test\n')\
-        +(' //------------------------------------------\n')\
-        +('   run_test();\n')\
-        +(' end\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Initialize the Reference Clock and Reset (if needed)\n')\
-        +(' //------------------------------------------\n')\
-        +(' //initial begin\n')\
-        +(' //end\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Reference Clock Generation (if needed)\n')\
-        +(' //------------------------------------------\n')\
-        +(' //always begin\n')\
-        +(' //end\n')\
-        +('endmodule: <TOP_NAME>\n')
-
-        top_stg = top_stg.replace("<TOP_NAME>", top_name)
-        top_stg = top_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        top_stg = top_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        top_stg_file = open("%s.sv"%(top_name), "w")
-        top_stg_arr = top_stg.split('µ')
-        for lines in top_stg_arr:
-            top_stg_file.write(lines)
-        top_stg_file.close()
-        
-        # Cleaning Local Variables
-        top_stg = ''
-        top_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(top_name, 'pkg_name', 'top_mc')
     #------------------------------------------------------------------------------
 
 
@@ -34486,52 +31646,7 @@ class uvm_testbench_gen:
     # generate_common_fl 
     #------------------------------------------------------------------------------
     def generate_common_fl(self, fl_name):
-        com_fl_stg = ''
-
-        if fl_name == "":
-            print("ERROR: Please Specify File List. Exiting The Tool!\n")
-            return None
-        
-        class_name_org = fl_name
-        fl_name = fl_name + "_common"
-        print("INFO: Generating File List %s"%(fl_name))
-
-        if (os.path.isfile('%s.f'%fl_name)):
-            print("WARNING: %s.f does exist, backing it up to %s.bak"%(fl_name, fl_name))
-            os.rename('%s.sv %s.bak'%(fl_name, fl_name))
-
-        com_fl_stg = com_fl_stg\
-        +('#===============================================================\n')\
-        +('# File Name        : <COMMON_FILELIST_NAME>.f\n')\
-        +('# Description      :\n')\
-        +('# Name             : <CREATE_NAME>\n')\
-        +('# File Created     : <CREATE_DATE>\n')\
-        +('# Copyright        :\n')\
-        +('#===============================================================\n')\
-        +('# NOTE: Please Dont Remove Any Comments Given Below\n')\
-        +('#===============================================================\n')\
-        +('\n')\
-        +('# UVM Library Directory\n')\
-        +('+incdir+$UVM_HOME/src\n')\
-        +('+incdir+.\n')\
-        +('\n')\
-        +('# UVM Library Files\n')\
-        +('$UVM_HOME/src/uvm.sv\n')\
-        +('$UVM_HOME/src/dpi/uvm_dpi.cc\n')
-
-        com_fl_stg = com_fl_stg.replace("<COMMON_FILELIST_NAME>", fl_name)
-        com_fl_stg = com_fl_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        com_fl_stg = com_fl_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        com_fl_stg_file = open("%s.f"%(fl_name), "w")
-        com_fl_stg_arr = com_fl_stg.split('µ')
-        for lines in com_fl_stg_arr:
-            com_fl_stg_file.write(lines)
-        com_fl_stg_file.close()
-        
-        # Cleaning Local Variables
-        com_fl_stg = ''
-        com_fl_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(fl_name, 'pkg_name', 'com_fl')
     #------------------------------------------------------------------------------
 
 
@@ -34539,80 +31654,7 @@ class uvm_testbench_gen:
     # generate_env_fl 
     #------------------------------------------------------------------------------
     def generate_env_fl(self, fl_name):
-        env_fl_stg = ''
-
-        if fl_name == "":
-            print("ERROR: Please Specify File List. Exiting The Tool!\n")
-            return None
-        
-        class_name_org = fl_name
-        fl_name = fl_name + "_environment"
-        print("INFO: Generating File List %s"%(fl_name))
-
-        if (os.path.isfile('%s.f'%fl_name)):
-            print("WARNING: %s.f does exist, backing it up to %s.bak"%(fl_name, fl_name))
-            os.rename('%s.sv %s.bak'%(fl_name, fl_name))
-
-        env_fl_stg = env_fl_stg\
-        +('#===============================================================\n')\
-        +('# File Name        : <ENV_FILELIST_NAME>.f\n')\
-        +('# Description      :\n')\
-        +('# Name             : <CREATE_NAME>\n')\
-        +('# File Created     : <CREATE_DATE>\n')\
-        +('# Copyright        :\n')\
-        +('#===============================================================\n')\
-        +('# NOTE: Please Dont Remove Any Comments Given Below\n')\
-        +('#===============================================================\n')\
-        +('\n')\
-        +('# Sub-Environment List Files\n')\
-        +('\n')\
-        +('# Environment Directory\n')\
-        +('\n')\
-        +('# Environment Interface Files Directory\n')\
-        +('\n')\
-        +('# Environment and Test Sequence Files Directory\n')\
-        +('\n')\
-        +('# Environment RAL, Memory Models Directory\n')\
-        +('\n')\
-        +('# Environment Monitor Files Directory\n')\
-        +('\n')\
-        +('# Environment Scoreboard Files Directory\n')\
-        +('\n')\
-        +('# Environment Agents Directory\n')\
-        +('\n')\
-        +('# Agents Directory\n')\
-        +('\n')\
-        +('# Agents Sequence Directory\n')\
-        +('\n')\
-        +('# Environment Checkers Directory\n')\
-        +('\n')\
-        +('# Test Directory\n')\
-        +('\n')\
-        +('# Interface, Interface Wrapper Files\n')\
-        +('\n')\
-        +('# Macros Files\n')\
-        +('\n')\
-        +('# Env Sequence Item Package\n')\
-        +('\n')\
-        +('# Env Sequence Package\n')\
-        +('\n')\
-        +('# Env Package\n')\
-        +('\n')\
-        +('# Env Test Package\n')
-
-        env_fl_stg = env_fl_stg.replace("<ENV_FILELIST_NAME>", fl_name)
-        env_fl_stg = env_fl_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        env_fl_stg = env_fl_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        env_fl_stg_file = open("%s.f"%(fl_name), "w")
-        env_fl_stg_arr = env_fl_stg.split('µ')
-        for lines in env_fl_stg_arr:
-            env_fl_stg_file.write(lines)
-        env_fl_stg_file.close()
-        
-        # Cleaning Local Variables
-        env_fl_stg = ''
-        env_fl_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(fl_name, 'pkg_name', 'env_fl')
     #------------------------------------------------------------------------------
 
 
@@ -34620,48 +31662,7 @@ class uvm_testbench_gen:
     # generate_tbt_fl 
     #------------------------------------------------------------------------------
     def generate_tbt_fl(self, fl_name):
-        tbt_fl_stg = ''
-
-        if fl_name == "":
-            print("ERROR: Please Specify File List. Exiting The Tool!\n")
-            return None
-        
-        class_name_org = fl_name
-        fl_name = fl_name + "_tbtop"
-        print("INFO: Generating File List %s"%(fl_name))
-
-        if (os.path.isfile('%s.f'%fl_name)):
-            print("WARNING: %s.f does exist, backing it up to %s.bak"%(fl_name, fl_name))
-            os.rename('%s.sv %s.bak'%(fl_name, fl_name))
-
-        tbt_fl_stg = tbt_fl_stg\
-        +('#===============================================================\n')\
-        +('# File Name        : <TBTOP_FILELIST_NAME>.f\n')\
-        +('# Description      :\n')\
-        +('# Name             : <CREATE_NAME>\n')\
-        +('# File Created     : <CREATE_DATE>\n')\
-        +('# Copyright        :\n')\
-        +('#===============================================================\n')\
-        +('# NOTE: Please Dont Remove Any Comments Given Below\n')\
-        +('#===============================================================\n')\
-        +('\n')\
-        +('# TB Top Directory\n')\
-        +('\n')\
-        +('# TB Top Files\n')
-
-        tbt_fl_stg = tbt_fl_stg.replace("<TBTOP_FILELIST_NAME>", fl_name)
-        tbt_fl_stg = tbt_fl_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        tbt_fl_stg = tbt_fl_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        tbt_fl_stg_file = open("%s.f"%(fl_name), "w")
-        tbt_fl_stg_arr = tbt_fl_stg.split('µ')
-        for lines in tbt_fl_stg_arr:
-            tbt_fl_stg_file.write(lines)
-        tbt_fl_stg_file.close()
-        
-        # Cleaning Local Variables
-        tbt_fl_stg = ''
-        tbt_fl_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(fl_name, 'pkg_name', 'tbt_fl')
     #------------------------------------------------------------------------------
 
 
@@ -34685,259 +31686,7 @@ class uvm_testbench_gen:
     # generate_agent_alone_mc 
     #------------------------------------------------------------------------------
     def generate_agent_alone_mc(self, class_name, pkg_name):
-        agt_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_agent"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        agt_stg = agt_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_agent;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Configuration Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Driver-Sequencer Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Monitor Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function              new(string name= "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' extern virtual function void build_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void connect_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void extract_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void check_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void report_phase(uvm_phase phase);\n')\
-        +(' extern virtual function void final_phase(uvm_phase phase);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_component_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_component_utils_end\n')\
-        +('endclass :<CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name = "<CLASS_NAME>", uvm_component parent);\n')\
-        +(' super.new(name, parent);\n')\
-        +('endfunction :new\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: build_phase\n')\
-        +('// \n')\
-        +('// Create and configure of testbench structure\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::build_phase(uvm_phase phase);\n')\
-        +(' super.build_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In build_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // Get Agent Configuration\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +(' // Construct Agent Monitors\n')\
-        +('\n')\
-        +(' // Construct Agent Driver-Sequencers\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('endfunction: build_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: connect_phase\n')\
-        +('// \n')\
-        +('// Establish cross-component connections\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::connect_phase(uvm_phase phase);\n')\
-        +(' super.connect_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In connect_phase...!!", UVM_DEBUG);\n')\
-        +('\n')\
-        +(' // -------------\n')\
-        +(' // Connect Virtual Interface to Monitor\n')\
-        +(' // -------------\n')\
-        +('\n')\
-        +(' // -------------\n')\
-        +(' // Connect Analysis Port\n')\
-        +(' // -------------\n')\
-        +('\n')\
-        +(' // -------------\n')\
-        +(' // Connect children\n')\
-        +(' // -------------\n')\
-        +('\n')\
-        +(' // Connect Agent Driver-Sequencers\n')\
-        +('\n')\
-        +('endfunction: connect_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: end_of_elaboration_phase\n')\
-        +('// \n')\
-        +('// Fine-tune the testbench\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::end_of_elaboration_phase(uvm_phase phase);\n')\
-        +(' super.end_of_elaboration_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In end_of_elaboration_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: end_of_elaboration_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: start_of_simulation_phase\n')\
-        +('// \n')\
-        +('// Get ready for DUT to be simulated\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::start_of_simulation_phase(uvm_phase phase);\n')\
-        +(' super.start_of_simulation_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In start_of_simulation_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: start_of_simulation_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: extract_phase\n')\
-        +('// \n')\
-        +('// Extract data from different points of the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::extract_phase(uvm_phase phase);\n')\
-        +(' super.extract_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In extract_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: extract_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: check_phase\n')\
-        +('// \n')\
-        +('// Check for any unexpected conditions in the verification environment\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::check_phase(uvm_phase phase);\n')\
-        +(' super.check_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In check_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: check_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: report_phase\n')\
-        +('// \n')\
-        +('// Report results of the test\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::report_phase(uvm_phase phase);\n')\
-        +(' super.report_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In report_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: report_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: final_phase\n')\
-        +('// \n')\
-        +('// Tie up loose ends. All Simulation activities are done.\n')\
-        +('// \n')\
-        +('// Closing files, Ending co-simulation engines etc.\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function void <CLASS_NAME>::final_phase(uvm_phase phase);\n')\
-        +(' super.final_phase(phase);\n')\
-        +('`uvm_info(get_type_name(), "In final_phase...!!", UVM_DEBUG);\n')\
-        +('endfunction: final_phase\n')\
-        +('\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')
-
-        agt_stg = agt_stg.replace("<CLASS_NAME>", class_name)
-        agt_stg = agt_stg.replace("<PACKAGE_NAME>", pkg_name)
-        agt_stg = agt_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        agt_stg = agt_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        agt_stg = agt_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        agt_stg_file = open("%s.sv"%(class_name), "w")
-        agt_stg_arr = agt_stg.split('µ')
-        for lines in agt_stg_arr:
-            agt_stg_file.write(lines)
-        agt_stg_file.close()
-        
-        # Cleaning Local Variables
-        agt_stg = ''
-        agt_stg_arr = ''
-        
-        # Calling Generate Agent Configuration 
-        self.generate_agent_configuration(class_name, pkg_name)
+        self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'agent_alone_mc')
     #------------------------------------------------------------------------------
 
 
@@ -34945,131 +31694,7 @@ class uvm_testbench_gen:
     # generate_agent_configuration 
     #------------------------------------------------------------------------------
     def generate_agent_configuration(self, class_name, pkg_name):
-        agt_cfg_stg = ''
-
-        if class_name == "":
-            print("ERROR: Please Specify Class Name. Exiting The Tool!\n")
-            return None
-        
-        if pkg_name == "":
-            print("ERROR: Please Specify Package Name. Exiting The Tool!\n")
-            return None
-
-        class_name_org = class_name
-        class_name = class_name + "_config"
-        print("INFO: Generating class %s"%(class_name))
-
-        if (os.path.isfile('%s.sv'%class_name)):
-            print("WARNING: %s.sv does exist, backing it up to %s.bak"%(class_name, class_name))
-            os.rename('%s.sv %s.bak'%(class_name, class_name))
-
-        agt_cfg_stg = agt_cfg_stg\
-        +('//===============================================================\n')\
-        +('// File Name        : <CLASS_NAME>\n')\
-        +('// Description      :\n')\
-        +('// Package Name     : <PACKAGE_NAME>\n')\
-        +('// Name             : <CREATE_NAME>\n')\
-        +('// File Created     : <CREATE_DATE>\n')\
-        +('// Copyright        :\n')\
-        +('//===============================================================\n')\
-        +('// NOTE: Please Don\'t Remove Any Comments or //--- Given Below\n')\
-        +('//===============================================================\n')\
-        +('\n')\
-        +('`ifndef <INC_GUARD>\n')\
-        +('`define <INC_GUARD>\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Class: <CLASS_NAME>\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('class <CLASS_NAME> extends uvm_object;\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Data Members\n')\
-        +(' //------------------------------------------\n')\
-        +(' rand uvm_active_passive_enum is_active = UVM_ACTIVE;\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Interface Instantiation\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Monitor Knobs\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Agent Driver Knobs\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Constraints\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' //------------------------------------------\n')\
-        +(' // Methods\n')\
-        +(' //------------------------------------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Standard UVM Methods\n')\
-        +(' // -----------------\n')\
-        +(' extern function       new(string name="<CLASS_NAME>");\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // User Defined APIs\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // UVM Factory Registration\n')\
-        +(' // -----------------\n')\
-        +(' `uvm_object_utils_begin(<CLASS_NAME>)\n')\
-        +('  // -----------------\n')\
-        +('  // Add field configurations\n')\
-        +('  // -----------------\n')\
-        +('  // -----------------\n')\
-        +(' `uvm_object_utils_end\n')\
-        +('endclass: <CLASS_NAME>\n')\
-        +('\n')\
-        +('\n')\
-        +('//---------------------------------------------------------------\n')\
-        +('// Function: new\n')\
-        +('// \n')\
-        +('//---------------------------------------------------------------\n')\
-        +('\n')\
-        +('function <CLASS_NAME>::new(string name="<CLASS_NAME>");\n')\
-        +(' super.new(name);\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Get configuration\n')\
-        +(' // -----------------\n')\
-        +('\n')\
-        +('\n')\
-        +(' // -----------------\n')\
-        +(' // Construct children\n')\
-        +(' // ------------------\n')\
-        +('\n')\
-        +('\n')\
-        +(' // ------------------\n')\
-        +(' // Configure children\n')\
-        +(' // ------------------\n')\
-        +('endfunction: new\n')\
-        +('\n')\
-        +('`endif //<INC_GUARD>\n')
-
-        agt_cfg_stg = agt_cfg_stg.replace("<CLASS_NAME>", class_name)
-        agt_cfg_stg = agt_cfg_stg.replace("<PACKAGE_NAME>", pkg_name)
-        agt_cfg_stg = agt_cfg_stg.replace("<INC_GUARD>", "INC_" + class_name.upper() + "_SV")
-        agt_cfg_stg = agt_cfg_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        agt_cfg_stg = agt_cfg_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        agt_cfg_stg_file = open("%s.sv"%(class_name), "w")
-        agt_cfg_stg_arr = agt_cfg_stg.split('µ')
-        for lines in agt_cfg_stg_arr:
-            agt_cfg_stg_file.write(lines)
-        agt_cfg_stg_file.close()
-        
-        # Cleaning Local Variables
-        agt_cfg_stg = ''
-        agt_cfg_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(class_name, pkg_name, 'agent_cfg')
     #------------------------------------------------------------------------------
 
 
@@ -35077,45 +31702,7 @@ class uvm_testbench_gen:
     # generate_tb_setup
     #------------------------------------------------------------------------------
     def generate_tb_setup(self, env_setup_name):
-        env_setup_stg = ''
-
-        if env_setup_name == "":
-            print("ERROR: Please Specify File List. Exiting The Tool!\n")
-            return None
-        
-        env_setup_name = env_setup_name + "_tb_setup"
-        print("INFO: Generating Environment Setup File %s"%(env_setup_name))
-
-        if (os.path.isfile('%s.sh'%env_setup_name)):
-            print("WARNING: %s.sh does exist, backing it up to %s.bak"%(env_setup_name, env_setup_name))
-            os.rename('%s.sh %s.bak'%(env_setup_name, env_setup_name))
-
-        env_setup_stg = env_setup_stg\
-        +('#===============================================================\n')\
-        +('# File Name        : <ENV_SETUP_NAME>.sh\n')\
-        +('# Description      :\n')\
-        +('# Name             : <CREATE_NAME>\n')\
-        +('# File Created     : <CREATE_DATE>\n')\
-        +('# Copyright        :\n')\
-        +('#===============================================================\n')\
-        +('# NOTE: Please Don\'t Remove Any Comments Given Below\n')\
-        +('#===============================================================\n')\
-        +('\n')\
-        +('# Source Simulation Environment Variables\n')
-
-        env_setup_stg = env_setup_stg.replace("<ENV_SETUP_NAME>", env_setup_name)
-        env_setup_stg = env_setup_stg.replace("<CREATE_NAME>", self.rtn_usr_name())
-        env_setup_stg = env_setup_stg.replace("<CREATE_DATE>", self.rtn_date_time_for_files())
-
-        env_setup_stg_file = open("%s.sh"%(env_setup_name), "w")
-        env_setup_stg_arr = env_setup_stg.split('µ')
-        for lines in env_setup_stg_arr:
-            env_setup_stg_file.write(lines)
-        env_setup_stg_file.close()
-        
-        # Cleaning Local Variables
-        env_setup_stg = ''
-        env_setup_stg_arr = ''
+        self.uvm_template_gen.generate_from_template(env_setup_name, 'pkg_name', 'env_setup')
     #------------------------------------------------------------------------------
 
 

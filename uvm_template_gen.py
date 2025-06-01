@@ -40,7 +40,8 @@ class uvm_template_gen:
             template_fl_dir = self.template_dir + template_fl_name
             try:
                 print('//'+'*'*10+'begin checking template file %s'%(template_fl_name)+'*'*10+'//')
-                open(template_fl_dir)
+                tmp_fl = open(template_fl_dir)
+                tmp_fl.close()
                 print('//'+'*'*10+'template file %s is found'%(template_fl_name)+'*'*10+'//')
             except:
                 print('Error: %s not found'%(template_fl_name))

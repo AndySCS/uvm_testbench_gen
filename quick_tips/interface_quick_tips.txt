@@ -1,0 +1,35 @@
+Please Enter the Following In Order Separated By Comma And No Space
+Enter no. of Signal Name, Type, Size
+
+For Example:
+  1. To Create an Interface Signal, please enter as give below:
+     mango,logic,8 or mango,logic,`ADDR_WIDTH
+
+  2. To Create an Interface Signal With Clocking Block, make sure you end the
+     clocking block name with _cb, please enter as give below:
+     mango,logic,8,mon_cb,inout
+     Note: You can add N-number of clocking blocks for the same signal
+
+  3. To Create an Interface Signal With Modports, make sure you end the
+     modport name with _mp, please enter as give below:
+     mango,logic,8,mon_mp,inout
+     Note: You can add N-number of modport for the same signal
+
+  4. To Create an Interface Signal With Modports, make sure you end the
+     modport name with _mp. If you wanted to add a clocking block
+     into the modport, please enter as give below
+     mango,logic,8,mon_mp,clocking
+
+  5. You can basically add both clocking block and modport in the same
+     for a particular signal, please enter as give below:
+     mango,logic,8,mon_cb,inout,drv_mp,output
+
+  6. To create an Interface Signal Wilh both left side and right side
+     element size configuration, please enter as given below:
+     mango,wire,le,8,ree,32 Or
+     mango,wire,ree,32 Or
+     mango,wire,le,8,ree,`ADDR_WIDTH Or
+     mango,wire,le,`DATA_WIDTH,ree,`ADDR_WIDTH
+     Note: Where le stands for left-element and ree for right-element
+
+So This Will Create a Interface With Name <Agent Name>_interface.sv

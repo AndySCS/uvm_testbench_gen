@@ -1,0 +1,18 @@
+Please Enter the Following In Order Separated By Comma And No Space
+Enter no. of monitors,1st monitor name,..,nth monitor name
+
+For Example:
+  1. To Create One Monitor Just Using Agent Name, please enter as give below:
+     1
+     Note: So This Will Create Monitor With <Agent_Name>_monitor.sv
+
+  2. To Create One Monitor Named mango, please enter as give below:
+     1,mango
+
+  3. To Create Two Monitors Named mango and orange, please enter as give below:
+     2,mango,orange
+     Note: Similarly You Can Create N-number of monitors
+
+So This Will Create a Monitor With Name <Agent Name>_mango_monitor.sv
+
+For Detailed Working Operation of This Tool, Please Refer The Below Link!
